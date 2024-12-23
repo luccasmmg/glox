@@ -10,6 +10,7 @@ import (
 
 type Glox struct {
   hadError bool
+  hadRuntimeError bool
 }
 
 func (g Glox) runFile(path string) ([]byte, error) {
@@ -32,6 +33,12 @@ func (g Glox) reportError(line int, message string) {
 
 func (g Glox) report(line int, where string, message string) {
     fmt.Printf("[line %d] Error %s: %s\n", line, where, message)
+}
+
+func (g Glox) runtimeError(err RuntimeError) {
+  fmt.Printf("%s\n[line %d]\n", err.message, err.token.Line)
+  g.hadRuntimeError = true
+  os.Exit(70)
 }
 
 func (g Glox) runPrompt() {
@@ -60,8 +67,12 @@ func (g Glox) run(source string) {
     fmt.Println("Error parsing expression")
     return
   }
-  astPrinter := Printer{}
-  fmt.Println(astPrinter.print(expression))
+  interpreter := Interpreter{}
+  value, err := interpreter.interpret(expression)
+  if err != nil {
+    fmt.Println(err)
+  }
+  fmt.Println(value)
 }
 
 func main() {

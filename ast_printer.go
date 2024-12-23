@@ -7,36 +7,37 @@ import (
 
 type Printer struct {}
 
-func (p *Printer) visitBinaryExpr(expr ExprBinary) interface{} {
-	return fmt.Sprintf("%v", p.parenthize(expr.Operator.Lexeme, expr.Left, expr.Right))
+func (p *Printer) visitBinaryExpr(expr ExprBinary) (interface{}, error) {
+	return fmt.Sprintf("%v", p.parenthize(expr.Operator.Lexeme, expr.Left, expr.Right)), nil
 }
 
-func (p *Printer) visitGroupingExpr(expr ExprGrouping) interface{} {
-	return fmt.Sprintf("%v", p.parenthize("group", expr.Expression))
+func (p *Printer) visitGroupingExpr(expr ExprGrouping) (interface{}, error) {
+	return fmt.Sprintf("%v", p.parenthize("group", expr.Expression)), nil
 }
 
-func (p *Printer) visitLiteralExpr(expr ExprLiteral) interface{} {
-  return fmt.Sprintf("%v", expr.Value)
+func (p *Printer) visitLiteralExpr(expr ExprLiteral) (interface{}, error) {
+  return fmt.Sprintf("%v", expr.Value), nil
 }
 
-func (p *Printer) visitUnaryExpr(expr ExprUnary) interface{} {
-  return fmt.Sprintf("%v", p.parenthize(expr.Operator.Lexeme, expr.Right))
+func (p *Printer) visitUnaryExpr(expr ExprUnary) (interface{}, error) {
+  return fmt.Sprintf("%v", p.parenthize(expr.Operator.Lexeme, expr.Right)), nil
 }
 
-func (p *Printer) visitVariableExpr(expr ExprVariable) interface{} {
-  return fmt.Sprintf("%v", expr.Name.Lexeme)
+func (p *Printer) visitVariableExpr(expr ExprVariable) (interface{}, error) {
+  return fmt.Sprintf("%v", expr.Name.Lexeme), nil
 }
 
-func (p *Printer) visitAssignExpr(expr ExprAssign) interface{} {
-  return fmt.Sprintf("%v", p.parenthize("= " + expr.Name.Lexeme, expr.Value))
+func (p *Printer) visitAssignExpr(expr ExprAssign) (interface{}, error) {
+  return fmt.Sprintf("%v", p.parenthize("= " + expr.Name.Lexeme, expr.Value)), nil
 }
 
-func (p *Printer) visitLogicalExpr(expr ExprLogical) interface{} {
-  return fmt.Sprintf("%v", p.parenthize(expr.Operator.Lexeme, expr.Left, expr.Right))
+func (p *Printer) visitLogicalExpr(expr ExprLogical) (interface{}, error) {
+  return fmt.Sprintf("%v", p.parenthize(expr.Operator.Lexeme, expr.Left, expr.Right)), nil
 }
 
-func (p *Printer) print(expr Expr) string {
-  return expr.accept(p).(string)
+func (p *Printer) print(expr Expr) (string, error) {
+  value, err := expr.accept(p)
+  return value.(string), err
 }
 
 func (p *Printer) parenthize(name string, exprs ...Expr) string {
@@ -45,7 +46,11 @@ func (p *Printer) parenthize(name string, exprs ...Expr) string {
   builder.WriteString(name)
   for _, expr := range exprs {
     builder.WriteString(" ")
-    builder.WriteString(p.print(expr))
+    var str, error = p.print(expr)
+    if error != nil {
+      panic(error)
+    }
+    builder.WriteString(str)
   }
   builder.WriteString(")")
   return builder.String()

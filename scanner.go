@@ -1,5 +1,9 @@
 package main
 
+import (
+  "strconv"
+)
+
 type Scanner struct {
 	source  string
 	tokens  []Token
@@ -49,7 +53,8 @@ func (s *Scanner) number() {
 			s.advance()
 		}
 	}
-	s.addToken(NUMBER, s.source[s.start:s.current])
+  var number, _ = strconv.ParseFloat(s.source[s.start:s.current], 64)
+	s.addToken(NUMBER, number)
 }
 
 func (s *Scanner) string() {
