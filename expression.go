@@ -1,17 +1,17 @@
 package main 
 
 type Expr interface {
-  accept(v visitor) (interface{}, error)
+  accept(v ExprVisitor) (interface{}, error)
 }
 
-type visitor interface {
+type ExprVisitor interface {
   visitBinaryExpr(expr ExprBinary) (interface{}, error)
   visitGroupingExpr(expr ExprGrouping) (interface{}, error)
   visitLiteralExpr(expr ExprLiteral) (interface{}, error)
   visitUnaryExpr(expr ExprUnary) (interface{}, error)
-  //visitVariableExpr(expr ExprVariable) interface{}
+  visitVariableExpr(expr ExprVariable) (interface{}, error)
   //visitLogicalExpr(expr ExprLogical) interface{}
-  //visitAssignExpr(expr ExprAssign) interface{}
+  visitAssignExpr(expr ExprAssign) (interface{}, error)
   //visitCallExpr(expr ExprCall) interface{}
 }
 
@@ -55,34 +55,34 @@ type ExprUnary struct {
 	Right    Expr
 }
 
-func (e ExprBinary) accept(v visitor) (interface{}, error) {
+func (e ExprBinary) accept(v ExprVisitor) (interface{}, error) {
   value, err := v.visitBinaryExpr(e)
   return value, err
 }
 
-func (e ExprGrouping) accept(v visitor)  (interface{}, error) {
+func (e ExprGrouping) accept(v ExprVisitor)  (interface{}, error) {
   value, err := v.visitGroupingExpr(e)
   return value, err
 }
 
-func (e ExprLiteral) accept(v visitor)  (interface{}, error) {
+func (e ExprLiteral) accept(v ExprVisitor)  (interface{}, error) {
   value, err := v.visitLiteralExpr(e)
   return value, err
 }
 
-func (e ExprUnary) accept(v visitor)  (interface{}, error) {
+func (e ExprUnary) accept(v ExprVisitor)  (interface{}, error) {
   value, err := v.visitUnaryExpr(e)
   return value, err
 }
 
-//func (e ExprVariable) accept(v visitor)  (interface{}, error) {
-//  return v.visitVariableExpr(e)
-//}
-//
-//func (e ExprAssign) accept(v visitor)  (interface{}, error) {
-//  return v.visitAssignExpr(e)
-//}
-//
+func (e ExprVariable) accept(v ExprVisitor)  (interface{}, error) {
+  return v.visitVariableExpr(e)
+}
+
+func (e ExprAssign) accept(v ExprVisitor)  (interface{}, error) {
+  return v.visitAssignExpr(e)
+}
+
 //func (e ExprLogical) accept(v visitor)  (interface{}, error) {
 //  return v.visitLogicalExpr(e)
 //}

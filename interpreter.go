@@ -5,7 +5,9 @@ import (
   "strconv"
 )
 
-type Interpreter struct{}
+type Interpreter struct{
+  environment *Environment
+}
 
 type RuntimeError struct {
   token Token
@@ -46,6 +48,14 @@ func (i *Interpreter) visitUnaryExpr(expr ExprUnary) (interface{}, error) {
 	return RuntimeError{token: expr.Operator, message: "Unknown operator."}, nil
 }
 
+func (i *Interpreter) visitVariableExpr(expr ExprVariable) (interface{}, error) {
+  var value, err = i.environment.get(expr.Name)
+  if err != nil {
+    return nil, err
+  }
+  return value, nil
+}
+
 func (i *Interpreter) isTruthy(obj interface{}) bool {
 	if obj == nil {
 		return false
@@ -82,6 +92,14 @@ func checkNumberOperand(operator Token, operand interface{}) error {
   }
   return nil
 }
+
+func checkIfNumberIsZero(number float64, operator Token, operand interface{}) error {
+  if number == 0 {
+    return &RuntimeError{token: operator, message: "Division by zero."}
+  }
+  return nil
+}
+
 
 func checkNumberOperands(operator Token, left interface{}, right interface{}) error {
   _, leftOk := left.(float64)
@@ -132,7 +150,9 @@ func (i *Interpreter) visitBinaryExpr(expr ExprBinary) (interface{}, error) {
     if err := checkNumberOperands(expr.Operator, left, right); err != nil {
       return nil, err
     }
-    fmt.Println(left, right)
+    if err := checkIfNumberIsZero(right.(float64), expr.Operator, right); err != nil {
+      return nil, err
+    }
 		return left.(float64) / right.(float64), nil
 	case STAR:
     if err := checkNumberOperands(expr.Operator, left, right); err != nil {
@@ -178,11 +198,70 @@ func (i *Interpreter) visitBinaryExpr(expr ExprBinary) (interface{}, error) {
   return RuntimeError{token: expr.Operator, message: "Unknown operator."}, nil
 }
 
+func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
+  var _, err = i.evaluate(stmt.Expression)
+  if err != nil {
+    return err
+  }
+  return nil
+}
+
+func (i *Interpreter) visitStmtPrint(stmt StmtPrint) error {
+  var value, err = i.evaluate(stmt.Expression)
+  if err != nil {
+    return err
+  }
+  fmt.Println(value)
+  return nil
+}
+
+func (i *Interpreter) visitStmtVarDeclaration(stmt StmtVarDeclaration) error {
+  var value interface{} = nil;
+  if stmt.Initializer != nil {
+    var val, err = i.evaluate(stmt.Initializer)
+    if err != nil {
+      return err
+    }
+    value = val
+  }
+  i.environment.define(stmt.Name.Lexeme, value)
+  return nil
+} 
+
+func (i *Interpreter) visitAssignExpr(expr ExprAssign) (interface{}, error) {
+  var value, error = i.evaluate(expr.Value)
+  if error != nil {
+    return nil, error
+  }
+  i.environment.assign(expr.Name, value)
+  return value, nil
+}
+
+func (i *Interpreter) visitStmtAssign(stmt StmtAssign) error {
+  var value, err = i.evaluate(stmt.Value)
+  if err != nil {
+    return err
+  }
+  i.environment.assign(stmt.Name, value)
+  return nil
+}
+
+func (i *Interpreter) execute(stmt Stmt) error {
+  stmt.accept(i)
+  return nil
+}
+
 func (i *Interpreter) evaluate(expr Expr) (interface{}, error) {
   value, err := expr.accept(i)
   return value, err
 }
 
-func (i *Interpreter) interpret(expr Expr) (interface{}, error) {
-  return i.evaluate(expr)
+func (i *Interpreter) interpret(expr []Stmt) (interface{}, error) {
+  for _, stmt := range expr {
+    var err = i.execute(stmt)
+    if err != nil {
+      return nil, err
+    }
+  }
+  return nil, nil
 }
