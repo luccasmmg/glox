@@ -251,6 +251,20 @@ func (i *Interpreter) execute(stmt Stmt) error {
   return nil
 }
 
+func (i *Interpreter) visitStmtBlock(stmt StmtBlock) error {
+  i.executeBlock(stmt.Statements, NewEnvironment(i.environment))
+  return nil
+}
+
+func (i *Interpreter) executeBlock(statements []Stmt, environment Environment) {
+  var previousEnv = i.environment
+  i.environment = &environment
+  for _, stmt := range statements {
+    i.execute(stmt)
+  }
+  i.environment = previousEnv
+}
+
 func (i *Interpreter) evaluate(expr Expr) (interface{}, error) {
   value, err := expr.accept(i)
   return value, err

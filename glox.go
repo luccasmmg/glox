@@ -44,6 +44,7 @@ func (g Glox) runtimeError(err RuntimeError) {
 }
 
 func (g Glox) runPrompt() {
+  var environment = NewEnvironment()
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
@@ -56,11 +57,11 @@ func (g Glox) runPrompt() {
 		if line == "" {
 			break
 		}
-		g.run(line)
+		g.run(line, &environment)
 	}
 }
 
-func (g Glox) run(source string) {
+func (g Glox) run(source string, env ...*Environment) {
 	scanner := NewScanner(source)
 	tokens := scanner.scanTokens()
 	parser := NewParser(tokens)
@@ -75,9 +76,25 @@ func (g Glox) run(source string) {
 		}
 		//os.Exit(65)
 	} else {
-    var environment = NewEnvironment()
+    var environment Environment;
+    if len(env) > 0 {
+      environment = *env[0]
+    } else {
+      environment = NewEnvironment()
+    }
 		interpreter := Interpreter{
       environment: &environment,
+    }
+    if len(statements) == 1 {
+      var stmt = statements[0]
+      if stmt, ok := stmt.(StmtExpression); ok {
+        value, err := interpreter.evaluate(stmt.Expression)
+        if err != nil {
+          fmt.Println(err)
+        }
+        fmt.Printf("%v\n", value)
+        return
+      }
     }
 		value, err := interpreter.interpret(statements)
 		if err != nil {

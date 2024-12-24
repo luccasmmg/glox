@@ -9,6 +9,7 @@ type StmtVisitor interface {
 	visitStmtVarDeclaration(expr StmtVarDeclaration) error
 	visitStmtExpression(expr StmtExpression) error
   visitStmtAssign(expr StmtAssign) error
+  visitStmtBlock(expr StmtBlock) error
 }
 
 type StmtVarDeclaration struct {
@@ -29,6 +30,10 @@ type StmtAssign struct {
   Value Expr
 }
 
+type StmtBlock struct {
+  Statements []Stmt
+}
+
 func (stmt StmtVarDeclaration) accept(visitor StmtVisitor) error {
 	return visitor.visitStmtVarDeclaration(stmt)
 }
@@ -43,4 +48,8 @@ func (stmt StmtPrint) accept(visitor StmtVisitor) error {
 
 func (stmt StmtAssign) accept(visitor StmtVisitor) error {
   return visitor.visitStmtAssign(stmt)
+}
+
+func (stmt StmtBlock) accept(visitor StmtVisitor) error {
+  return visitor.visitStmtBlock(stmt)
 }
