@@ -10,6 +10,7 @@ type StmtVisitor interface {
 	visitStmtExpression(expr StmtExpression) error
   visitStmtAssign(expr StmtAssign) error
   visitStmtBlock(expr StmtBlock) error
+  visitStmtIf(expr StmtIf) error
 }
 
 type StmtVarDeclaration struct {
@@ -28,6 +29,12 @@ type StmtPrint struct {
 type StmtAssign struct {
   Name  Token
   Value Expr
+}
+
+type StmtIf struct {
+  Condition Expr
+  ThenBranch Stmt
+  ElseBranch Stmt
 }
 
 type StmtBlock struct {
@@ -52,4 +59,8 @@ func (stmt StmtAssign) accept(visitor StmtVisitor) error {
 
 func (stmt StmtBlock) accept(visitor StmtVisitor) error {
   return visitor.visitStmtBlock(stmt)
+}
+
+func (stmt StmtIf) accept(visitor StmtVisitor) error {
+  return visitor.visitStmtIf(stmt)
 }

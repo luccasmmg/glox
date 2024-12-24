@@ -70,6 +70,9 @@ func (p *Parser) varDeclaration() (Stmt, error) {
 }
 
 func (p *Parser) statement() (Stmt, error) {
+  if p.match(IF) {
+    return p.ifStatement()
+  }
 	if p.match(PRINT) {
 		return p.printStatement()
 	}
@@ -81,6 +84,32 @@ func (p *Parser) statement() (Stmt, error) {
     return StmtBlock{Statements: value}, nil
   }
 	return p.expressionStatement()
+}
+
+func (p *Parser) ifStatement() (Stmt, error) {
+  if _, err := p.consume(LEFT_PAREN, "Expect '(' after 'if'."); err != nil {
+    return nil, err
+  }
+  condition, err := p.expression()
+  if err != nil {
+    return nil, err
+  }
+  if _, err := p.consume(RIGHT_PAREN, "Expect ')' after if condition."); err != nil {
+    return nil, err
+  }
+  thenBranch, err := p.statement()
+  if err != nil {
+    return nil, err
+  }
+  var elseBranch Stmt = nil;
+  if p.match(ELSE) {
+    branch, err := p.statement()
+    if err != nil {
+      return nil, err
+    }
+    elseBranch = branch
+  }
+  return StmtIf{Condition: condition, ThenBranch: thenBranch, ElseBranch: elseBranch}, nil
 }
 
 func (p *Parser) printStatement() (Stmt, error) {
@@ -120,8 +149,12 @@ func (p *Parser) block() ([]Stmt, error) {
   return statements, nil
 }
 
+func (p *Parser) expression() (Expr, error) {
+	return p.assignment()
+}
+
 func (p *Parser) assignment() (Expr, error) {
-  var expr = p.equality()
+  var expr = p.or()
   if p.match(EQUAL) {
     var equals = p.previous()
     var value, _ = p.assignment()
@@ -134,8 +167,32 @@ func (p *Parser) assignment() (Expr, error) {
   return expr, nil
 }
 
-func (p *Parser) expression() (Expr, error) {
-	return p.assignment()
+func (p *Parser) or() Expr {
+  var expr = p.and()
+  for p.match(OR) {
+    var operator = p.previous()
+    var right = p.and()
+    expr = ExprLogical{
+      Operator: operator,
+      Right: right,
+      Left: expr,
+    }
+  }
+  return expr;
+}
+
+func (p *Parser) and() Expr {
+  var expr = p.equality()
+  for p.match(AND) {
+    var operator = p.previous()
+    var right = p.equality()
+    expr = ExprLogical{
+      Operator: operator,
+      Right: right,
+      Left: expr,
+    }
+  }
+  return expr
 }
 
 func (p *Parser) equality() Expr {

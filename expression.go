@@ -10,7 +10,7 @@ type ExprVisitor interface {
   visitLiteralExpr(expr ExprLiteral) (interface{}, error)
   visitUnaryExpr(expr ExprUnary) (interface{}, error)
   visitVariableExpr(expr ExprVariable) (interface{}, error)
-  //visitLogicalExpr(expr ExprLogical) interface{}
+  visitLogicalExpr(expr ExprLogical) (interface{}, error)
   visitAssignExpr(expr ExprAssign) (interface{}, error)
   //visitCallExpr(expr ExprCall) interface{}
 }
@@ -83,9 +83,10 @@ func (e ExprAssign) accept(v ExprVisitor)  (interface{}, error) {
   return v.visitAssignExpr(e)
 }
 
-//func (e ExprLogical) accept(v visitor)  (interface{}, error) {
-//  return v.visitLogicalExpr(e)
-//}
+func (e ExprLogical) accept(v ExprVisitor)  (interface{}, error) {
+  return v.visitLogicalExpr(e)
+}
+
 //func (e ExprCall) accept(v visitor) interface{} {
 //  return v.visitCallExpr(e)
 //}
