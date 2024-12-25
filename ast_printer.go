@@ -35,6 +35,10 @@ func (p *Printer) visitLogicalExpr(expr ExprLogical) (interface{}, error) {
   return fmt.Sprintf("%v", p.parenthize(expr.Operator.Lexeme, expr.Left, expr.Right)), nil
 }
 
+func (p *Printer) visitCallExpr(expr ExprCall) (interface{}, error) {
+  return fmt.Sprintf("%v", "f"), nil
+}
+
 func (p *Printer) print(expr Expr) (string, error) {
   value, err := expr.accept(p)
   return value.(string), err

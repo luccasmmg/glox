@@ -3,6 +3,11 @@ package main
 type Environment struct {
 	values    map[string]interface{}
 	enclosing *Environment
+	globals   *Environment
+}
+
+func GlobalEnvironment() *Environment {
+  return &Environment{values: make(map[string]interface{}), enclosing: nil, globals: nil}
 }
 
 func NewEnvironment(enclosing ...*Environment) Environment {
@@ -10,7 +15,9 @@ func NewEnvironment(enclosing ...*Environment) Environment {
 	if len(enclosing) > 0 {
 		env = enclosing[0]
 	}
-	return Environment{values: make(map[string]interface{}), enclosing: env}
+	global := GlobalEnvironment()
+	global.define("clock", Time{})
+	return Environment{values: make(map[string]interface{}), enclosing: env, globals: global}
 }
 
 func (e *Environment) define(name string, value interface{}) {
@@ -20,10 +27,10 @@ func (e *Environment) define(name string, value interface{}) {
 func (e *Environment) assign(name Token, value interface{}) error {
 	_, ok := e.values[name.Lexeme]
 	if !ok {
-    if e.enclosing != nil {
-      e.enclosing.assign(name, value)
-      return nil
-    }
+		if e.enclosing != nil {
+			e.enclosing.assign(name, value)
+			return nil
+		}
 		return &RuntimeError{token: name, message: "Undefined variable '" + name.Lexeme + "'."}
 	}
 	e.values[name.Lexeme] = value
@@ -33,9 +40,9 @@ func (e *Environment) assign(name Token, value interface{}) error {
 func (e *Environment) get(name Token) (interface{}, error) {
 	value, ok := e.values[name.Lexeme]
 	if !ok {
-    if e.enclosing != nil {
-      return e.enclosing.get(name)
-    }
+		if e.enclosing != nil {
+			return e.enclosing.get(name)
+		}
 		return nil, &RuntimeError{token: name, message: "Undefined variable '" + name.Lexeme + "'."}
 	}
 	return value, nil

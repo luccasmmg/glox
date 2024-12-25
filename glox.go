@@ -8,9 +8,10 @@ import (
 	"strings"
 )
 
+var hadError        bool
+var	hadRuntimeError bool
+
 type Glox struct {
-	hadError        bool
-	hadRuntimeError bool
 }
 
 func (g Glox) runFile(path string) error {
@@ -29,18 +30,26 @@ func (g Glox) runFile(path string) error {
   return nil
 }
 
-func (g Glox) reportError(line int, message string) {
-	g.report(line, "", message)
+func reportError(line int, message string) {
+	report(line, "", message)
 }
 
-func (g Glox) report(line int, where string, message string) {
+func report(line int, where string, message string) {
 	fmt.Printf("[line %d] Error %s: %s\n", line, where, message)
 }
 
 func (g Glox) runtimeError(err RuntimeError) {
 	fmt.Printf("%s\n[line %d]\n", err.message, err.token.Line)
-	g.hadRuntimeError = true
+	hadRuntimeError = true
 	os.Exit(70)
+}
+
+func parseError(token Token, message string) {
+	if token.TokenType == EOF {
+		report(token.Line, "at end", message)
+	} else {
+		report(token.Line, fmt.Sprintf("at '%v'", token.Lexeme), message)
+	}
 }
 
 func (g Glox) runPrompt() {
@@ -66,7 +75,7 @@ func (g Glox) run(source string, env ...*Environment) {
 	tokens := scanner.scanTokens()
 	parser := NewParser(tokens)
 	statements, errors := parser.parse()
-	if g.hadError {
+	if hadError {
 		fmt.Println("Error parsing expression")
 		return
 	}

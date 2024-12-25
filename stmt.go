@@ -11,6 +11,8 @@ type StmtVisitor interface {
   visitStmtAssign(expr StmtAssign) error
   visitStmtBlock(expr StmtBlock) error
   visitStmtIf(expr StmtIf) error
+  visitStmtWhile(expr StmtWhile) error
+  visitStmtFunction (expr StmtFunction) error
 }
 
 type StmtVarDeclaration struct {
@@ -37,8 +39,19 @@ type StmtIf struct {
   ElseBranch Stmt
 }
 
+type StmtWhile struct {
+  Condition Expr 
+  Body Stmt
+}
+
 type StmtBlock struct {
   Statements []Stmt
+}
+
+type StmtFunction struct {
+  Name Token
+  Params []Token
+  Body []Stmt
 }
 
 func (stmt StmtVarDeclaration) accept(visitor StmtVisitor) error {
@@ -63,4 +76,12 @@ func (stmt StmtBlock) accept(visitor StmtVisitor) error {
 
 func (stmt StmtIf) accept(visitor StmtVisitor) error {
   return visitor.visitStmtIf(stmt)
+}
+
+func (stmt StmtWhile) accept(visitor StmtVisitor) error {
+  return visitor.visitStmtWhile(stmt)
+}
+
+func (stmt StmtFunction) accept(visitor StmtVisitor) error {
+  return visitor.visitStmtFunction(stmt)
 }

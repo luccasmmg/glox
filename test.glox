@@ -1,6 +1,5 @@
-var x = 3;
-if (x == 3) {
-    print "x is 3";
-} else {
-    print "x is not 3";
+fun sayHi(first, last) {
+  print "Hi, " + first + " " + last + "!";
 }
+
+sayHi("CHUPA", "PORRA");

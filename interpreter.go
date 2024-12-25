@@ -215,10 +215,61 @@ func (i *Interpreter) visitBinaryExpr(expr ExprBinary) (interface{}, error) {
 	return RuntimeError{token: expr.Operator, message: "Unknown operator."}, nil
 }
 
+func (i *Interpreter) visitCallExpr(expr ExprCall) (interface{}, error) {
+	callee, err := i.evaluate(expr.Callee)
+	if err != nil {
+		return nil, err
+	}
+	function, ok := callee.(GloxCallable)
+	if !ok {
+		return nil, &RuntimeError{
+			token:   expr.Paren,
+			message: "Can only call functions and classes",
+		}
+	}
+	var arguments []interface{}
+	for _, argument := range expr.Arguments {
+		_arg, err := i.evaluate(argument)
+		if err != nil {
+			return nil, err
+		}
+		arguments = append(arguments, _arg)
+	}
+	if len(arguments) != function.Arity() {
+		message := fmt.Sprintf("Expected %d arguments but got %d", function.Arity(), len(arguments))
+		return nil, &RuntimeError{
+			token:   expr.Paren,
+			message: message,
+		}
+	}
+	function.Call(i, arguments)
+  return nil, nil
+}
+
 func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
 	var _, err = i.evaluate(stmt.Expression)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (i *Interpreter) visitStmtFunction(stmt StmtFunction) error {
+  var function GloxFunction = GloxFunction{Declaration: stmt}
+  i.environment.define(stmt.Name.Lexeme, function)
+  return nil
+}
+
+func (i *Interpreter) visitStmtWhile(stmt StmtWhile) error {
+	for {
+		condition, err := i.evaluate(stmt.Condition)
+		if err != nil {
+			return err
+		}
+		if !i.isTruthy(condition) {
+			break
+		}
+		i.execute(stmt.Body)
 	}
 	return nil
 }
@@ -277,7 +328,10 @@ func (i *Interpreter) visitStmtAssign(stmt StmtAssign) error {
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {
-	stmt.accept(i)
+	var err = stmt.accept(i)
+  if err != nil {
+    return err
+  }
 	return nil
 }
 

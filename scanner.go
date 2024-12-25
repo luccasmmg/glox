@@ -65,7 +65,7 @@ func (s *Scanner) string() {
 		s.advance()
 	}
 	if s.isAtEnd() {
-		Glox{}.reportError(s.line, "Unterminated string.")
+		reportError(s.line, "Unterminated string.")
 		return
 	}
 	s.advance()
@@ -216,6 +216,6 @@ func (s *Scanner) scanToken() {
 			s.identifier()
 			return
 		}
-		Glox{}.reportError(s.line, "Unexpected character.")
+		reportError(s.line, "Unexpected character.")
 	}
 }
