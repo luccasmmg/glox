@@ -274,7 +274,7 @@ func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
 }
 
 func (i *Interpreter) visitStmtFunction(stmt StmtFunction) error {
-	var function GloxFunction = GloxFunction{Declaration: stmt}
+	var function GloxFunction = GloxFunction{Declaration: stmt, Closure: i.environment}
 	i.environment.define(stmt.Name.Lexeme, function)
 	return nil
 }

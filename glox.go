@@ -112,14 +112,13 @@ func (g Glox) run(source string, env ...*Environment) {
 }
 
 func main() {
-	//argCount := len(os.Args)
+	argCount := len(os.Args)
 	g := Glox{}
-	g.runFile("test.glox")
-	//if argCount > 2 {
-	//	fmt.Println("Usage: glox [script]")
-	//} else if argCount == 2 {
-	//	g.runFile(os.Args[1])
-	//} else {
-	//	g.runPrompt()
-	//}
+	if argCount > 2 {
+		fmt.Println("Usage: glox [script]")
+	} else if argCount == 2 {
+		g.runFile(os.Args[1])
+	} else {
+		g.runPrompt()
+	}
 }

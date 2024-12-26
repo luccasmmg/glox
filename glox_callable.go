@@ -7,10 +7,11 @@ type GloxCallable interface {
 
 type GloxFunction struct {
 	Declaration StmtFunction
+  Closure *Environment
 }
 
 func (f GloxFunction) Call(interpreter *Interpreter, arguments []interface{}) (interface{}, error) {
-	environment := NewEnvironment(interpreter.globals)
+	environment := NewEnvironment(f.Closure)
 	for i, paramName := range f.Declaration.Params {
 		environment.define(paramName.Lexeme, arguments[i])
 	}
