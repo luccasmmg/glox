@@ -7,11 +7,31 @@ import (
 
 type Interpreter struct {
 	environment *Environment
+	globals     *Environment
+}
+
+func NewInterpreter() *Interpreter {
+	// global env
+	global := NewEnvironment(nil)
+	global.define("clock", Time{})
+
+	return &Interpreter{
+		globals:     global,
+		environment: global,
+	}
 }
 
 type RuntimeError struct {
 	token   Token
 	message string
+}
+
+type Return struct {
+	Value interface{}
+}
+
+func (e Return) Error() string {
+	return ""
 }
 
 func (e *RuntimeError) Error() string {
@@ -242,8 +262,7 @@ func (i *Interpreter) visitCallExpr(expr ExprCall) (interface{}, error) {
 			message: message,
 		}
 	}
-	function.Call(i, arguments)
-  return nil, nil
+	return function.Call(i, arguments)
 }
 
 func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
@@ -255,9 +274,9 @@ func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
 }
 
 func (i *Interpreter) visitStmtFunction(stmt StmtFunction) error {
-  var function GloxFunction = GloxFunction{Declaration: stmt}
-  i.environment.define(stmt.Name.Lexeme, function)
-  return nil
+	var function GloxFunction = GloxFunction{Declaration: stmt}
+	i.environment.define(stmt.Name.Lexeme, function)
+	return nil
 }
 
 func (i *Interpreter) visitStmtWhile(stmt StmtWhile) error {
@@ -280,9 +299,9 @@ func (i *Interpreter) visitStmtIf(stmt StmtIf) error {
 		return err
 	}
 	if i.isTruthy(value) {
-		i.execute(stmt.ThenBranch)
+		return i.execute(stmt.ThenBranch)
 	} else if stmt.ElseBranch != nil {
-		i.execute(stmt.ElseBranch)
+		return i.execute(stmt.ElseBranch)
 	}
 	return nil
 }
@@ -294,6 +313,15 @@ func (i *Interpreter) visitStmtPrint(stmt StmtPrint) error {
 	}
 	fmt.Println(value)
 	return nil
+}
+
+func (i *Interpreter) visitStmtReturn(stmt StmtReturn) error {
+	value, err := i.evaluate(stmt.Value)
+	if err != nil {
+		return err
+	}
+
+	return Return{Value: value}
 }
 
 func (i *Interpreter) visitStmtVarDeclaration(stmt StmtVarDeclaration) error {
@@ -328,30 +356,30 @@ func (i *Interpreter) visitStmtAssign(stmt StmtAssign) error {
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {
-	var err = stmt.accept(i)
-  if err != nil {
-    return err
-  }
-	return nil
+	return stmt.accept(i)
 }
 
 func (i *Interpreter) visitStmtBlock(stmt StmtBlock) error {
-	i.executeBlock(stmt.Statements, NewEnvironment(i.environment))
+	return i.executeBlock(stmt.Statements, NewEnvironment(i.environment))
+}
+
+func (intr *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
+	previous := intr.environment
+	intr.environment = environment
+
+	for _, stmt := range statements {
+		if err := intr.execute(stmt); err != nil {
+			intr.environment = previous
+			return err
+		}
+	}
+
+	intr.environment = previous
 	return nil
 }
 
-func (i *Interpreter) executeBlock(statements []Stmt, environment Environment) {
-	var previousEnv = i.environment
-	i.environment = &environment
-	for _, stmt := range statements {
-		i.execute(stmt)
-	}
-	i.environment = previousEnv
-}
-
 func (i *Interpreter) evaluate(expr Expr) (interface{}, error) {
-	value, err := expr.accept(i)
-	return value, err
+	return expr.accept(i)
 }
 
 func (i *Interpreter) interpret(expr []Stmt) (interface{}, error) {

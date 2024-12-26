@@ -13,11 +13,17 @@ type StmtVisitor interface {
   visitStmtIf(expr StmtIf) error
   visitStmtWhile(expr StmtWhile) error
   visitStmtFunction (expr StmtFunction) error
+  visitStmtReturn (expr StmtReturn) error
 }
 
 type StmtVarDeclaration struct {
 	Name        Token
 	Initializer Expr
+}
+
+type StmtReturn struct {
+  Keyword Token
+  Value Expr
 }
 
 type StmtExpression struct {
@@ -84,4 +90,8 @@ func (stmt StmtWhile) accept(visitor StmtVisitor) error {
 
 func (stmt StmtFunction) accept(visitor StmtVisitor) error {
   return visitor.visitStmtFunction(stmt)
+}
+
+func (stmt StmtReturn) accept(visitor StmtVisitor) error {
+  return visitor.visitStmtReturn(stmt)
 }

@@ -53,7 +53,7 @@ func parseError(token Token, message string) {
 }
 
 func (g Glox) runPrompt() {
-  var environment = NewEnvironment()
+  var environment = NewEnvironment(nil)
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
@@ -66,7 +66,7 @@ func (g Glox) runPrompt() {
 		if line == "" {
 			break
 		}
-		g.run(line, &environment)
+		g.run(line, environment)
 	}
 }
 
@@ -85,15 +85,13 @@ func (g Glox) run(source string, env ...*Environment) {
 		}
 		//os.Exit(65)
 	} else {
-    var environment Environment;
-    if len(env) > 0 {
-      environment = *env[0]
-    } else {
-      environment = NewEnvironment()
-    }
-		interpreter := Interpreter{
-      environment: &environment,
-    }
+    //var environment *Environment;
+    //if len(env) > 0 {
+    //  environment = env[0]
+    //} else {
+    //  environment = NewEnvironment(nil)
+    //}
+		interpreter := NewInterpreter()
     if len(statements) == 1 {
       var stmt = statements[0]
       if stmt, ok := stmt.(StmtExpression); ok {
@@ -114,13 +112,14 @@ func (g Glox) run(source string, env ...*Environment) {
 }
 
 func main() {
-	argCount := len(os.Args)
+	//argCount := len(os.Args)
 	g := Glox{}
-	if argCount > 2 {
-		fmt.Println("Usage: glox [script]")
-	} else if argCount == 2 {
-		g.runFile(os.Args[1])
-	} else {
-		g.runPrompt()
-	}
+	g.runFile("test.glox")
+	//if argCount > 2 {
+	//	fmt.Println("Usage: glox [script]")
+	//} else if argCount == 2 {
+	//	g.runFile(os.Args[1])
+	//} else {
+	//	g.runPrompt()
+	//}
 }

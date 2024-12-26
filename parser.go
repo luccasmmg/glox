@@ -85,6 +85,9 @@ func (p *Parser) statement() (Stmt, error) {
 	if p.match(PRINT) {
 		return p.printStatement()
 	}
+	if p.match(RETURN) {
+		return p.returnStatement()
+	}
 	if p.match(WHILE) {
 		return p.whileStatement()
 	}
@@ -222,6 +225,25 @@ func (p *Parser) printStatement() (Stmt, error) {
 	return StmtPrint{Expression: value}, nil
 }
 
+func (p *Parser) returnStatement() (Stmt, error) {
+	var keyword = p.previous()
+	var value Expr = nil
+	if !p.check(SEMICOLON) {
+		var err error
+		value, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := p.consume(SEMICOLON, "Expect ';' after return value."); err != nil {
+		return nil, err
+	}
+	return StmtReturn{
+		Keyword: keyword,
+		Value:   value,
+	}, nil
+}
+
 func (p *Parser) expressionStatement() (Stmt, error) {
 	var value, err = p.expression()
 	if err != nil {
@@ -234,11 +256,11 @@ func (p *Parser) expressionStatement() (Stmt, error) {
 }
 
 func (p *Parser) function(kind string) (Stmt, error) {
-	var name, err = p.consume(IDENTIFIER, "Expect "+kind+" name")	
-  if err != nil {
-    return nil, err
-  }
-  if _, err := p.consume(LEFT_PAREN, "Expect '(' after "+kind+" name"); err != nil {
+	var name, err = p.consume(IDENTIFIER, "Expect "+kind+" name")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := p.consume(LEFT_PAREN, "Expect '(' after "+kind+" name"); err != nil {
 		return nil, err
 	}
 	var params []Token
@@ -252,26 +274,26 @@ func (p *Parser) function(kind string) (Stmt, error) {
 			} else {
 				params = append(params, identifier)
 			}
-      if (!p.match(COMMA)) {
-        break
-      }
+			if !p.match(COMMA) {
+				break
+			}
 		}
 	}
 	if _, err := p.consume(RIGHT_PAREN, "Expect ')' after params"); err != nil {
 		return nil, err
 	}
-	if _, err := p.consume(LEFT_BRACE, "Expect '{' before " + kind + " body"); err != nil {
+	if _, err := p.consume(LEFT_BRACE, "Expect '{' before "+kind+" body"); err != nil {
 		return nil, err
 	}
-  body, err := p.block()
-  if err != nil {
-    return nil, err
-  }
-  return StmtFunction{
-    Name: name,
-    Params: params,
-    Body: body,
-  }, nil
+	body, err := p.block()
+	if err != nil {
+		return nil, err
+	}
+	return StmtFunction{
+		Name:   name,
+		Params: params,
+		Body:   body,
+	}, nil
 }
 
 func (p *Parser) block() ([]Stmt, error) {

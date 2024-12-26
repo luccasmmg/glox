@@ -1,49 +1,46 @@
 package main
 
+import "fmt"
+
 type Environment struct {
 	values    map[string]interface{}
 	enclosing *Environment
-	globals   *Environment
 }
 
-func GlobalEnvironment() *Environment {
-  return &Environment{values: make(map[string]interface{}), enclosing: nil, globals: nil}
-}
-
-func NewEnvironment(enclosing ...*Environment) Environment {
-	var env *Environment
-	if len(enclosing) > 0 {
-		env = enclosing[0]
+func NewEnvironment(enclosing *Environment) *Environment {
+	return &Environment{
+		enclosing: enclosing,
+		values:    make(map[string]interface{}),
 	}
-	global := GlobalEnvironment()
-	global.define("clock", Time{})
-	return Environment{values: make(map[string]interface{}), enclosing: env, globals: global}
 }
 
 func (e *Environment) define(name string, value interface{}) {
 	e.values[name] = value
 }
 
-func (e *Environment) assign(name Token, value interface{}) error {
-	_, ok := e.values[name.Lexeme]
-	if !ok {
-		if e.enclosing != nil {
-			e.enclosing.assign(name, value)
-			return nil
+func (env *Environment) get(token Token) (interface{}, error) {
+	if value, ok := env.values[token.Lexeme]; ok {
+		return value, nil
+	} else if env.enclosing != nil {
+		return env.enclosing.get(token)
+	} else {
+		return nil, &RuntimeError{
+			token:   token,
+			message: fmt.Sprintf("Undefined variable '%v'", token.Lexeme),
 		}
-		return &RuntimeError{token: name, message: "Undefined variable '" + name.Lexeme + "'."}
 	}
-	e.values[name.Lexeme] = value
-	return nil
 }
 
-func (e *Environment) get(name Token) (interface{}, error) {
-	value, ok := e.values[name.Lexeme]
-	if !ok {
-		if e.enclosing != nil {
-			return e.enclosing.get(name)
+func (env *Environment) assign(token Token, value interface{}) error {
+	if _, ok := env.values[token.Lexeme]; ok {
+		env.values[token.Lexeme] = value
+		return nil
+	} else if env.enclosing != nil {
+		return env.enclosing.assign(token, value)
+	} else {
+		return &RuntimeError{
+			token:   token,
+			message: fmt.Sprintf("Undefined variable '%v'", token.Lexeme),
 		}
-		return nil, &RuntimeError{token: name, message: "Undefined variable '" + name.Lexeme + "'."}
 	}
-	return value, nil
 }
