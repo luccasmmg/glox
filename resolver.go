@@ -7,12 +7,20 @@ import (
 type Resolver struct {
 	interpreter *Interpreter
 	scopes      Stack[map[string]bool]
+  currentFunction FunctionType
 }
 
 type ResolverError struct {
 	token   Token
 	message string
 }
+
+type FunctionType string
+
+const (
+  NONE = "NONE"
+  FUNCTION = "FUNCTION"
+)
 
 func (e *ResolverError) Error() string {
 	return fmt.Sprintf("Error at '%s': %s", e.token.Lexeme, e.message)
@@ -23,6 +31,7 @@ func NewResolver(interpreter *Interpreter) Resolver {
 	return Resolver{
 		interpreter: interpreter,
 		scopes:      Stack[map[string]bool]{},
+    currentFunction: NONE,
 	}
 }
 
@@ -84,7 +93,7 @@ func (r *Resolver) visitStmtFunction(stmt StmtFunction) error {
   if err != nil {
     return err
   }
-  err = r.resolveFunction(stmt)
+  err = r.resolveFunction(stmt, FUNCTION)
   if err != nil {
     return err
   }
@@ -135,6 +144,12 @@ func (r *Resolver) visitStmtPrint(stmt StmtPrint) error {
 }
 
 func (r *Resolver) visitStmtReturn(stmt StmtReturn) error {
+  if r.currentFunction == NONE {
+    return &ResolverError{
+      stmt.Keyword,
+      "Can't return from top-level code.",
+    }
+  }
   if stmt.Value != nil {
     var _, err = r.resolveExpr(stmt.Value)
     if err != nil {
@@ -194,7 +209,9 @@ func (r *Resolver) visitLogicalExpr(expr ExprLogical) (interface{}, error) {
   return nil, nil
 }
 
-func (r *Resolver) resolveFunction(stmt StmtFunction) error {
+func (r *Resolver) resolveFunction(stmt StmtFunction, _type FunctionType) error {
+  var enclosingFunction = r.currentFunction
+  r.currentFunction = _type
   r.beginScope()
   for _, param := range stmt.Params {
     err := r.declare(param)
@@ -208,6 +225,7 @@ func (r *Resolver) resolveFunction(stmt StmtFunction) error {
   }
   r.resolveStatements(stmt.Body)
   r.endScope()
+  r.currentFunction = enclosingFunction
   return nil
 }
 
@@ -249,6 +267,12 @@ func (r *Resolver) declare(name Token) error {
 	if err != nil {
 		return err
 	}
+  if _, ok := scope[name.Lexeme]; ok {
+    return &ResolverError{
+      name,
+      "Variable with this name already declared in this scope.",
+    }
+  }
 	scope[name.Lexeme] = false
 	return nil
 }
