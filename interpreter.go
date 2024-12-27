@@ -8,16 +8,19 @@ import (
 type Interpreter struct {
 	environment *Environment
 	globals     *Environment
+  locals map[Expr]int
 }
 
 func NewInterpreter() *Interpreter {
 	// global env
 	global := NewEnvironment(nil)
 	global.define("clock", Time{})
+  locals := make(map[Expr]int)
 
 	return &Interpreter{
 		globals:     global,
 		environment: global,
+    locals: locals,
 	}
 }
 
@@ -87,11 +90,7 @@ func (i *Interpreter) visitUnaryExpr(expr ExprUnary) (interface{}, error) {
 }
 
 func (i *Interpreter) visitVariableExpr(expr ExprVariable) (interface{}, error) {
-	var value, err = i.environment.get(expr.Name)
-	if err != nil {
-		return nil, err
-	}
-	return value, nil
+  return i.lookupVariable(expr.Name, expr)
 }
 
 func (i *Interpreter) isTruthy(obj interface{}) bool {
@@ -342,41 +341,50 @@ func (i *Interpreter) visitAssignExpr(expr ExprAssign) (interface{}, error) {
 	if error != nil {
 		return nil, error
 	}
-	i.environment.assign(expr.Name, value)
-	return value, nil
-}
-
-func (i *Interpreter) visitStmtAssign(stmt StmtAssign) error {
-	var value, err = i.evaluate(stmt.Value)
-	if err != nil {
-		return err
-	}
-	i.environment.assign(stmt.Name, value)
-	return nil
+  distance, ok := i.locals[expr]
+  if ok {
+    i.environment.assignAt(distance, expr.Name, value)
+  } else {
+    i.globals.assign(expr.Name, value)
+  }
+  return value, nil
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {
 	return stmt.accept(i)
 }
 
+func (i *Interpreter) resolve(expr Expr, depth int) {
+  i.locals[expr] = depth
+}
+
 func (i *Interpreter) visitStmtBlock(stmt StmtBlock) error {
 	return i.executeBlock(stmt.Statements, NewEnvironment(i.environment))
 }
 
-func (intr *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
-	previous := intr.environment
-	intr.environment = environment
+func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
+	previous := i.environment
+	i.environment = environment
 
 	for _, stmt := range statements {
-		if err := intr.execute(stmt); err != nil {
-			intr.environment = previous
+		if err := i.execute(stmt); err != nil {
+			i.environment = previous
 			return err
 		}
 	}
 
-	intr.environment = previous
+	i.environment = previous
 	return nil
 }
+
+func (i *Interpreter) lookupVariable(name Token, expr Expr) (interface{}, error) {
+  distance, ok := i.locals[expr]
+  if ok {
+    return i.environment.getAt(distance, name.Lexeme), nil
+  } else {
+    return i.globals.get(name)
+  }
+} 
 
 func (i *Interpreter) evaluate(expr Expr) (interface{}, error) {
 	return expr.accept(i)

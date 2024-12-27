@@ -103,7 +103,12 @@ func (g Glox) run(source string, env ...*Environment) {
         return
       }
     }
-		value, err := interpreter.interpret(statements)
+    resolver := NewResolver(interpreter)
+    errors := resolver.resolveStatements(statements)
+    if errors != nil {
+      fmt.Println(errors)
+    }
+    value, err := interpreter.interpret(statements)
 		if err != nil {
 			fmt.Println(err)
 		}

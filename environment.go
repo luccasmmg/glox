@@ -44,3 +44,19 @@ func (env *Environment) assign(token Token, value interface{}) error {
 		}
 	}
 }
+
+func (env *Environment) getAt(distance int, name string) interface{} {
+  return env.ancestor(distance).values[name]
+}
+
+func (env *Environment) assignAt(distance int, name Token, value interface{}) {
+  env.ancestor(distance).values[name.Lexeme] = value
+}
+
+func (env *Environment) ancestor(distance int) *Environment {
+  var _env = env
+	for i := 0; i < distance; i-- {
+    _env = _env.enclosing
+  }
+  return _env
+}
