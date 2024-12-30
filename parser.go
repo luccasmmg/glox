@@ -38,6 +38,15 @@ func (p *Parser) parse() ([]Stmt, []error) {
 }
 
 func (p *Parser) declaration() (Stmt, error) {
+	if p.match(CLASS) {
+		var value, err = p.classDeclaration()
+		if err != nil {
+			p.synchronize()
+			return nil, nil
+		} else {
+			return value, nil
+		}
+	}
 	if p.match(FUN) {
 		var value, err = p.function("function")
 		if err != nil {
@@ -58,6 +67,33 @@ func (p *Parser) declaration() (Stmt, error) {
 	} else {
 		return p.statement()
 	}
+}
+
+func (p *Parser) classDeclaration() (Stmt, error) {
+	var name, err = p.consume(IDENTIFIER, "Expect class name.")
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(LEFT_BRACE, "Expect { before class body.")
+	if err != nil {
+		return nil, err
+	}
+	methods := []Stmt{}
+	for !p.check(RIGHT_BRACE) && !p.isAtEnd() {
+		function, err := p.function("method")
+		if err != nil {
+			return nil, err
+		}
+		methods = append(methods, function)
+	}
+	_, err = p.consume(RIGHT_BRACE, "Expect } before class body.")
+	if err != nil {
+		return nil, err
+	}
+	return StmtClass{
+		Name:    name,
+		Methods: methods,
+	}, nil
 }
 
 func (p *Parser) varDeclaration() (Stmt, error) {
@@ -326,6 +362,13 @@ func (p *Parser) assignment() (Expr, error) {
 		if variable, ok := expr.(ExprVariable); ok {
 			var name = variable.Name
 			return ExprAssign{Name: name, Value: value}, nil
+			//TODO Reread this part of the book
+		} else if get, ok := expr.(ExprGet); ok {
+			return ExprSet{
+				Object: get.Object,
+				Name:   get.Name,
+				Value:  value,
+			}, nil
 		}
 		fmt.Println(p.error(equals, "Invalid assignment target."))
 	}
@@ -458,6 +501,15 @@ func (p *Parser) call() (Expr, error) {
 			if err != nil {
 				return nil, err
 			}
+		} else if p.match(DOT) {
+			name, err := p.consume(IDENTIFIER, "Expect property name after '.'.")
+			if err != nil {
+				return nil, err
+			}
+			expr = ExprGet{
+				Object: expr,
+				Name:   name,
+			}
 		} else {
 			break
 		}
@@ -499,6 +551,9 @@ func (p *Parser) primary() (Expr, error) {
 	}
 	if p.match(IDENTIFIER) {
 		return ExprVariable{Name: p.previous()}, nil
+	}
+	if p.match(THIS) {
+		return ExprThis{Keyword: p.previous()}, nil
 	}
 	if p.match(NIL) {
 		return ExprLiteral{Value: nil}, nil

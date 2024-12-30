@@ -1,10 +1,11 @@
-var a = "global";
-{
-  fun showA() {
-    print a;
+class Emerson {
+  init() {
+    this.shape = "FRANGO";
   }
-
-  showA();
-  var a = "block";
-  showA();
+  getShape() {
+    return this.shape;
+  }
 }
+
+var emerson = Emerson();
+print emerson.getShape();

@@ -7,8 +7,8 @@ type Environment struct {
 	enclosing *Environment
 }
 
-func NewEnvironment(enclosing *Environment) *Environment {
-	return &Environment{
+func NewEnvironment(enclosing *Environment) Environment {
+	return Environment{
 		enclosing: enclosing,
 		values:    make(map[string]interface{}),
 	}
@@ -55,7 +55,7 @@ func (env *Environment) assignAt(distance int, name Token, value interface{}) {
 
 func (env *Environment) ancestor(distance int) *Environment {
   var _env = env
-	for i := 0; i < distance; i-- {
+	for i := 0; i < distance; i++ {
     _env = _env.enclosing
   }
   return _env

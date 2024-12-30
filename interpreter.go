@@ -8,19 +8,19 @@ import (
 type Interpreter struct {
 	environment *Environment
 	globals     *Environment
-  locals map[Expr]int
+	locals      map[Expr]int
 }
 
 func NewInterpreter() *Interpreter {
 	// global env
 	global := NewEnvironment(nil)
 	global.define("clock", Time{})
-  locals := make(map[Expr]int)
+	locals := make(map[Expr]int)
 
 	return &Interpreter{
-		globals:     global,
-		environment: global,
-    locals: locals,
+		globals:     &global,
+		environment: &global,
+		locals:      locals,
 	}
 }
 
@@ -90,7 +90,7 @@ func (i *Interpreter) visitUnaryExpr(expr ExprUnary) (interface{}, error) {
 }
 
 func (i *Interpreter) visitVariableExpr(expr ExprVariable) (interface{}, error) {
-  return i.lookupVariable(expr.Name, expr)
+	return i.lookupVariable(expr.Name, expr)
 }
 
 func (i *Interpreter) isTruthy(obj interface{}) bool {
@@ -264,6 +264,49 @@ func (i *Interpreter) visitCallExpr(expr ExprCall) (interface{}, error) {
 	return function.Call(i, arguments)
 }
 
+func (i *Interpreter) visitGetExpr(expr ExprGet) (interface{}, error) {
+	obj, err := i.evaluate(expr.Object)
+	if err != nil {
+		return nil, err
+	}
+	switch instance := obj.(type) {
+	case GloxInstance:
+		return instance.Get(expr.Name)
+	case *GloxInstance:
+		return instance.Get(expr.Name)
+	default:
+		return nil, &RuntimeError{
+			token:   expr.Name,
+			message: "Only instances have properties",
+		}
+	}
+}
+
+func (i *Interpreter) visitSetExpr(expr ExprSet) (interface{}, error) {
+	obj, err := i.evaluate(expr.Object)
+	if err != nil {
+		return nil, err
+	}
+	var instance *GloxInstance
+	switch inst := obj.(type) {
+	case GloxInstance:
+		instance = &inst
+	case *GloxInstance:
+		instance = inst
+	default:
+		return nil, &RuntimeError{
+			token:   expr.Name,
+			message: "Only instances have fields",
+		}
+	}
+	value, err := i.evaluate(expr.Value)
+	if err != nil {
+		return nil, err
+	}
+	instance.Set(expr.Name, value)
+	return value, nil
+}
+
 func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
 	var _, err = i.evaluate(stmt.Expression)
 	if err != nil {
@@ -273,7 +316,7 @@ func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
 }
 
 func (i *Interpreter) visitStmtFunction(stmt StmtFunction) error {
-	var function GloxFunction = GloxFunction{Declaration: stmt, Closure: i.environment}
+	var function GloxFunction = GloxFunction{Declaration: stmt, Closure: i.environment, IsInitializer: false}
 	i.environment.define(stmt.Name.Lexeme, function)
 	return nil
 }
@@ -287,7 +330,9 @@ func (i *Interpreter) visitStmtWhile(stmt StmtWhile) error {
 		if !i.isTruthy(condition) {
 			break
 		}
-		i.execute(stmt.Body)
+		if err := i.execute(stmt.Body); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -332,7 +377,7 @@ func (i *Interpreter) visitStmtVarDeclaration(stmt StmtVarDeclaration) error {
 		}
 		value = val
 	}
-	i.environment.define(stmt.Name.Lexeme, value)
+  i.environment.define(stmt.Name.Lexeme, value)
 	return nil
 }
 
@@ -341,13 +386,18 @@ func (i *Interpreter) visitAssignExpr(expr ExprAssign) (interface{}, error) {
 	if error != nil {
 		return nil, error
 	}
-  distance, ok := i.locals[expr]
-  if ok {
-    i.environment.assignAt(distance, expr.Name, value)
-  } else {
-    i.globals.assign(expr.Name, value)
-  }
-  return value, nil
+	distance, ok := i.locals[expr]
+	if ok {
+		i.environment.assignAt(distance, expr.Name, value)
+	} else {
+		i.globals.assign(expr.Name, value)
+	}
+	return value, nil
+}
+
+func (i *Interpreter) visitThisExpr(expr ExprThis) (interface{}, error) {
+	value, err := i.lookupVariable(expr.Keyword, expr)
+	return value, err
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {
@@ -355,36 +405,54 @@ func (i *Interpreter) execute(stmt Stmt) error {
 }
 
 func (i *Interpreter) resolve(expr Expr, depth int) {
-  i.locals[expr] = depth
+	i.locals[expr] = depth
 }
 
 func (i *Interpreter) visitStmtBlock(stmt StmtBlock) error {
-	return i.executeBlock(stmt.Statements, NewEnvironment(i.environment))
+	env := NewEnvironment(i.environment)
+	return i.executeBlock(stmt.Statements, &env)
+}
+
+func (i *Interpreter) visitStmtClass(stmt StmtClass) error {
+	i.environment.define(stmt.Name.Lexeme, nil)
+	methods := make(map[string]GloxFunction)
+	for _, method := range stmt.Methods {
+		function := GloxFunction{
+			Declaration:   method.(StmtFunction),
+			Closure:       i.environment,
+			IsInitializer: method.(StmtFunction).Name.Lexeme == "init",
+		}
+		_method := method.(StmtFunction)
+		methods[_method.Name.Lexeme] = function
+	}
+	klass := NewGloxClass(stmt.Name.Lexeme, methods)
+  if err := i.environment.assign(stmt.Name, klass); err != nil {
+    return err
+  }
+	return nil
 }
 
 func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
 	previous := i.environment
 	i.environment = environment
-
 	for _, stmt := range statements {
 		if err := i.execute(stmt); err != nil {
 			i.environment = previous
 			return err
 		}
 	}
-
 	i.environment = previous
 	return nil
 }
 
 func (i *Interpreter) lookupVariable(name Token, expr Expr) (interface{}, error) {
-  distance, ok := i.locals[expr]
-  if ok {
-    return i.environment.getAt(distance, name.Lexeme), nil
-  } else {
-    return i.globals.get(name)
-  }
-} 
+	distance, ok := i.locals[expr]
+	if ok {
+		return i.environment.getAt(distance, name.Lexeme), nil
+	} else {
+		return i.globals.get(name)
+	}
+}
 
 func (i *Interpreter) evaluate(expr Expr) (interface{}, error) {
 	return expr.accept(i)

@@ -13,6 +13,9 @@ type ExprVisitor interface {
   visitLogicalExpr(expr ExprLogical) (interface{}, error)
   visitAssignExpr(expr ExprAssign) (interface{}, error)
   visitCallExpr(expr ExprCall) (interface{}, error)
+  visitGetExpr(expr ExprGet) (interface{}, error)
+  visitSetExpr(expr ExprSet) (interface{}, error)
+  visitThisExpr(expr ExprThis) (interface{}, error)
 }
 
 type ExprCall struct {
@@ -55,6 +58,21 @@ type ExprUnary struct {
 	Right    Expr
 }
 
+type ExprGet struct {
+  Object Expr
+  Name Token
+}
+
+type ExprSet struct {
+  Object Expr
+  Name Token
+  Value Expr
+}
+
+type ExprThis struct {
+  Keyword Token
+}
+
 func (e ExprBinary) accept(v ExprVisitor) (interface{}, error) {
   value, err := v.visitBinaryExpr(e)
   return value, err
@@ -91,3 +109,14 @@ func (e ExprCall) accept(v ExprVisitor) (interface{}, error) {
   return v.visitCallExpr(e)
 }
 
+func (e ExprGet) accept(v ExprVisitor) (interface{}, error) {
+  return v.visitGetExpr(e)
+}
+
+func (e ExprSet) accept(v ExprVisitor) (interface{}, error) {
+  return v.visitSetExpr(e)
+}
+
+func (e ExprThis) accept(v ExprVisitor) (interface{}, error) {
+  return v.visitThisExpr(e)
+}

@@ -13,6 +13,7 @@ type StmtVisitor interface {
   visitStmtWhile(expr StmtWhile) error
   visitStmtFunction (expr StmtFunction) error
   visitStmtReturn (expr StmtReturn) error
+  visitStmtClass (expr StmtClass) error
 }
 
 type StmtVarDeclaration struct {
@@ -54,6 +55,12 @@ type StmtFunction struct {
   Body []Stmt
 }
 
+type StmtClass struct {
+  Name Token
+  Methods []Stmt
+  //Superclass ExprVariable
+}
+
 func (stmt StmtVarDeclaration) accept(visitor StmtVisitor) error {
 	return visitor.visitStmtVarDeclaration(stmt)
 }
@@ -84,4 +91,8 @@ func (stmt StmtFunction) accept(visitor StmtVisitor) error {
 
 func (stmt StmtReturn) accept(visitor StmtVisitor) error {
   return visitor.visitStmtReturn(stmt)
+}
+
+func (stmt StmtClass) accept(visitor StmtVisitor) error {
+  return visitor.visitStmtClass(stmt)
 }

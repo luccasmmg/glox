@@ -2,14 +2,15 @@ package main
 
 import (
 	"bufio"
+	//"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 )
 
-var hadError        bool
-var	hadRuntimeError bool
+var hadError bool
+var hadRuntimeError bool
 
 type Glox struct {
 }
@@ -25,9 +26,9 @@ func (g Glox) runFile(path string) error {
 	if err != nil {
 		return err
 	}
-  var source = string(bytes)
-  g.run(source)
-  return nil
+	var source = string(bytes)
+	g.run(source)
+	return nil
 }
 
 func reportError(line int, message string) {
@@ -53,7 +54,7 @@ func parseError(token Token, message string) {
 }
 
 func (g Glox) runPrompt() {
-  var environment = NewEnvironment(nil)
+	var environment = NewEnvironment(nil)
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
@@ -66,7 +67,7 @@ func (g Glox) runPrompt() {
 		if line == "" {
 			break
 		}
-		g.run(line, environment)
+		g.run(line, &environment)
 	}
 }
 
@@ -85,30 +86,38 @@ func (g Glox) run(source string, env ...*Environment) {
 		}
 		//os.Exit(65)
 	} else {
-    //var environment *Environment;
-    //if len(env) > 0 {
-    //  environment = env[0]
-    //} else {
-    //  environment = NewEnvironment(nil)
-    //}
+		//var environment *Environment;
+		//if len(env) > 0 {
+		//  environment = env[0]
+		//} else {
+		//  environment = NewEnvironment(nil)
+		//}
 		interpreter := NewInterpreter()
-    if len(statements) == 1 {
-      var stmt = statements[0]
-      if stmt, ok := stmt.(StmtExpression); ok {
-        value, err := interpreter.evaluate(stmt.Expression)
-        if err != nil {
-          fmt.Println(err)
-        }
-        fmt.Printf("%v\n", value)
-        return
-      }
-    }
-    resolver := NewResolver(interpreter)
-    errors := resolver.resolveStatements(statements)
-    if errors != nil {
-      fmt.Println(errors)
-    }
-    value, err := interpreter.interpret(statements)
+		if len(statements) == 1 {
+			var stmt = statements[0]
+			if stmt, ok := stmt.(StmtExpression); ok {
+				value, err := interpreter.evaluate(stmt.Expression)
+				if err != nil {
+					fmt.Println(err)
+				}
+				fmt.Printf("%v\n", value)
+				return
+			}
+		}
+		resolver := NewResolver(interpreter)
+		errors := resolver.resolveStatements(statements)
+		if errors != nil {
+			fmt.Println(errors)
+		}
+		//for _, stmt := range statements {
+		//	stmtJSON, err := json.MarshalIndent(stmt, "", "  ")
+		//	if err != nil {
+		//		fmt.Println("Error marshalling statement:", err)
+		//		continue
+		//	}
+	  //  fmt.Println(string(stmtJSON))
+		//}
+		value, err := interpreter.interpret(statements)
 		if err != nil {
 			fmt.Println(err)
 		}
