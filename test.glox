@@ -1,14 +1,6 @@
-class Doughnut {
-  cook() {
-    print "Fry until golden brown.";
-  }
+fun fib(n) {
+  if (n < 2) return n;
+  return fib(n - 1) + fib(n - 2); 
 }
 
-class BostonCream < Doughnut {
-  cook() {
-    super.cook();
-    print "Pipe full of custard and coat with chocolate.";
-  }
-}
-
-BostonCream().cook();
+print fib(40);
