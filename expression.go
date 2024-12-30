@@ -33,12 +33,12 @@ type ExprBinary struct {
 
 type ExprLogical struct {
 	Operator Token
-	Left     Expr
-	Right    Expr
+	Left     *Expr
+	Right    *Expr
 }
 
 type ExprGrouping struct {
-	Expression Expr
+	Expression *Expr
 }
 
 type ExprAssign struct {
@@ -56,18 +56,18 @@ type ExprVariable struct {
 
 type ExprUnary struct {
 	Operator Token
-	Right    Expr
+	Right    *Expr
 }
 
 type ExprGet struct {
-  Object Expr
+  Object *Expr
   Name Token
 }
 
 type ExprSet struct {
-  Object Expr
+  Object *Expr
   Name Token
-  Value Expr
+  Value *Expr
 }
 
 type ExprThis struct {

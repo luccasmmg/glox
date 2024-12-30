@@ -46,7 +46,7 @@ func (i *Interpreter) visitLiteralExpr(expr ExprLiteral) (interface{}, error) {
 }
 
 func (i *Interpreter) visitLogicalExpr(expr ExprLogical) (interface{}, error) {
-	var left, err = i.evaluate(expr.Left)
+	var left, err = i.evaluate(*expr.Left)
 	if err != nil {
 		return nil, err
 	}
@@ -60,11 +60,11 @@ func (i *Interpreter) visitLogicalExpr(expr ExprLogical) (interface{}, error) {
 		}
 	}
 
-	return i.evaluate(expr.Right)
+	return i.evaluate(*expr.Right)
 }
 
 func (i *Interpreter) visitGroupingExpr(expr ExprGrouping) (interface{}, error) {
-	var value, err = i.evaluate(expr.Expression)
+	var value, err = i.evaluate(*expr.Expression)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (i *Interpreter) visitGroupingExpr(expr ExprGrouping) (interface{}, error) 
 }
 
 func (i *Interpreter) visitUnaryExpr(expr ExprUnary) (interface{}, error) {
-	var right, err = i.evaluate(expr.Right)
+	var right, err = i.evaluate(*expr.Right)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,7 @@ func (i *Interpreter) visitCallExpr(expr ExprCall) (interface{}, error) {
 }
 
 func (i *Interpreter) visitGetExpr(expr ExprGet) (interface{}, error) {
-	obj, err := i.evaluate(expr.Object)
+	obj, err := i.evaluate(*expr.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,7 @@ func (i *Interpreter) visitGetExpr(expr ExprGet) (interface{}, error) {
 }
 
 func (i *Interpreter) visitSetExpr(expr ExprSet) (interface{}, error) {
-	obj, err := i.evaluate(expr.Object)
+	obj, err := i.evaluate(*expr.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func (i *Interpreter) visitSetExpr(expr ExprSet) (interface{}, error) {
 			message: "Only instances have fields",
 		}
 	}
-	value, err := i.evaluate(expr.Value)
+	value, err := i.evaluate(*expr.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func (i *Interpreter) visitSuperExpr(expr ExprSuper) (interface{}, error) {
 }
 
 func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
-	var _, err = i.evaluate(stmt.Expression)
+	var _, err = i.evaluate(*stmt.Expression)
 	if err != nil {
 		return err
 	}
@@ -380,7 +380,7 @@ func (i *Interpreter) visitStmtReturn(stmt StmtReturn) error {
 func (i *Interpreter) visitStmtVarDeclaration(stmt StmtVarDeclaration) error {
 	var value interface{} = nil
 	if stmt.Initializer != nil {
-		var val, err = i.evaluate(stmt.Initializer)
+		var val, err = i.evaluate(*stmt.Initializer)
 		if err != nil {
 			return err
 		}
@@ -471,11 +471,11 @@ func (i *Interpreter) visitStmtClass(stmt StmtClass) error {
 	return nil
 }
 
-func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
+func (i *Interpreter) executeBlock(statements []*Stmt, environment *Environment) error {
 	previous := i.environment
 	i.environment = environment
 	for _, stmt := range statements {
-		if err := i.execute(stmt); err != nil {
+		if err := i.execute(*stmt); err != nil {
 			i.environment = previous
 			return err
 		}
@@ -497,9 +497,9 @@ func (i *Interpreter) evaluate(expr Expr) (interface{}, error) {
 	return expr.accept(i)
 }
 
-func (i *Interpreter) interpret(expr []Stmt) (interface{}, error) {
+func (i *Interpreter) interpret(expr []*Stmt) (interface{}, error) {
 	for _, stmt := range expr {
-		var err = i.execute(stmt)
+		var err = i.execute(*stmt)
 		if err != nil {
 			return nil, err
 		}

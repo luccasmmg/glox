@@ -103,7 +103,7 @@ func (r *Resolver) visitStmtClass(stmt StmtClass) error {
 func (r *Resolver) visitStmtVarDeclaration(stmt StmtVarDeclaration) error {
 	r.declare(stmt.Name)
 	if stmt.Initializer != nil {
-		_, err := r.resolveExpr(stmt.Initializer)
+		_, err := r.resolveExpr(*stmt.Initializer)
 		if err != nil {
 			return err
 		}
@@ -185,7 +185,7 @@ func (r *Resolver) visitStmtFunction(stmt StmtFunction) error {
 }
 
 func (r *Resolver) visitStmtExpression(stmt StmtExpression) error {
-	_, err := r.resolveExpr(stmt.Expression)
+	_, err := r.resolveExpr(*stmt.Expression)
 	return err
 }
 
@@ -262,7 +262,7 @@ func (r *Resolver) visitBinaryExpr(expr ExprBinary) (interface{}, error) {
 }
 
 func (r *Resolver) visitGroupingExpr(expr ExprGrouping) (interface{}, error) {
-	return r.resolveExpr(expr.Expression)
+	return r.resolveExpr(*expr.Expression)
 }
 
 func (r *Resolver) visitLiteralExpr(expr ExprLiteral) (interface{}, error) {
@@ -270,7 +270,7 @@ func (r *Resolver) visitLiteralExpr(expr ExprLiteral) (interface{}, error) {
 }
 
 func (r *Resolver) visitUnaryExpr(expr ExprUnary) (interface{}, error) {
-	return r.resolveExpr(expr.Right)
+	return r.resolveExpr(*expr.Right)
 }
 
 func (r *Resolver) visitCallExpr(expr ExprCall) (interface{}, error) {
@@ -288,7 +288,7 @@ func (r *Resolver) visitCallExpr(expr ExprCall) (interface{}, error) {
 }
 
 func (r *Resolver) visitGetExpr(expr ExprGet) (interface{}, error) {
-	_, err := r.resolveExpr(expr.Object)
+	_, err := r.resolveExpr(*expr.Object)
 	if err != nil {
 		return err, nil
 	}
@@ -296,11 +296,11 @@ func (r *Resolver) visitGetExpr(expr ExprGet) (interface{}, error) {
 }
 
 func (r *Resolver) visitLogicalExpr(expr ExprLogical) (interface{}, error) {
-	_, err := r.resolveExpr(expr.Left)
+	_, err := r.resolveExpr(*expr.Left)
 	if err != nil {
 		return nil, nil
 	}
-	_, err = r.resolveExpr(expr.Right)
+	_, err = r.resolveExpr(*expr.Right)
 	if err != nil {
 		return nil, nil
 	}
@@ -308,11 +308,11 @@ func (r *Resolver) visitLogicalExpr(expr ExprLogical) (interface{}, error) {
 }
 
 func (r *Resolver) visitSetExpr(expr ExprSet) (interface{}, error) {
-	_, err := r.resolveExpr(expr.Value)
+	_, err := r.resolveExpr(*expr.Value)
 	if err != nil {
 		return err, nil
 	}
-	_, err = r.resolveExpr(expr.Object)
+	_, err = r.resolveExpr(*expr.Object)
 	if err != nil {
 		return err, nil
 	}
@@ -347,9 +347,9 @@ func (r *Resolver) resolveExpr(expr Expr) (interface{}, error) {
 	return expr.accept(r)
 }
 
-func (r *Resolver) resolveStatements(statements []Stmt) error {
+func (r *Resolver) resolveStatements(statements []*Stmt) error {
 	for _, stmt := range statements {
-		err := r.resolveStmt(stmt)
+		err := r.resolveStmt(*stmt)
 		if err != nil {
 			return err
 		}

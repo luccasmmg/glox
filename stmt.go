@@ -18,7 +18,7 @@ type StmtVisitor interface {
 
 type StmtVarDeclaration struct {
 	Name        Token
-	Initializer Expr
+	Initializer *Expr
 }
 
 type StmtReturn struct {
@@ -27,7 +27,7 @@ type StmtReturn struct {
 }
 
 type StmtExpression struct {
-	Expression Expr
+	Expression *Expr
 }
 
 type StmtPrint struct {
@@ -46,13 +46,13 @@ type StmtWhile struct {
 }
 
 type StmtBlock struct {
-  Statements []Stmt
+  Statements []*Stmt
 }
 
 type StmtFunction struct {
   Name Token
   Params []Token
-  Body []Stmt
+  Body []*Stmt
 }
 
 type StmtClass struct {

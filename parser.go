@@ -23,15 +23,15 @@ func NewParser(tokens []Token) Parser {
 	return Parser{tokens: tokens, current: 0}
 }
 
-func (p *Parser) parse() ([]Stmt, []error) {
-	var statements = []Stmt{}
+func (p *Parser) parse() ([]*Stmt, []error) {
+	var statements = []*Stmt{}
 	var errors = []error{}
 	for !p.isAtEnd() {
 		stmt, err := p.declaration()
 		if err != nil {
 			errors = append(errors, err)
 		} else {
-			statements = append(statements, stmt)
+			statements = append(statements, &stmt)
 		}
 	}
 	return statements, errors
@@ -129,7 +129,7 @@ func (p *Parser) varDeclaration() (Stmt, error) {
 	if _, err := p.consume(SEMICOLON, "Expect ';' after variable declaration."); err != nil {
 		return nil, err
 	}
-	return StmtVarDeclaration{Name: token, Initializer: initializer}, nil
+	return StmtVarDeclaration{Name: token, Initializer: &initializer}, nil
 }
 
 func (p *Parser) statement() (Stmt, error) {
@@ -205,8 +205,14 @@ func (p *Parser) forStatement() (Stmt, error) {
 		return nil, err
 	}
 	if increment != nil {
+    var statements []Stmt
+    statements = append(statements, StmtExpression{Expression: &increment})
+    stmtPointers := make([]*Stmt, len(statements))
+    for i := range statements {
+      stmtPointers[i] = &statements[i]
+    }
 		body = StmtBlock{
-			Statements: append([]Stmt{body}, StmtExpression{Expression: increment}),
+			Statements: stmtPointers,
 		}
 	}
 	if condition == nil {
@@ -217,8 +223,14 @@ func (p *Parser) forStatement() (Stmt, error) {
 		Body:      body,
 	}
 	if initializer != nil {
+    var statements []Stmt
+    statements = append([]Stmt{initializer})
+    stmtPointers := make([]*Stmt, len(statements))
+    for i := range statements {
+      stmtPointers[i] = &statements[i]
+    }
 		body = StmtBlock{
-			Statements: append([]Stmt{initializer}, body),
+			Statements: stmtPointers,
 		}
 	}
 	return body, nil
@@ -306,7 +318,7 @@ func (p *Parser) expressionStatement() (Stmt, error) {
 	if _, err := p.consume(SEMICOLON, "Expect ';' after expression."); err != nil {
 		return nil, err
 	}
-	return StmtExpression{Expression: value}, nil
+	return StmtExpression{Expression: &value}, nil
 }
 
 func (p *Parser) function(kind string) (Stmt, error) {
@@ -350,14 +362,14 @@ func (p *Parser) function(kind string) (Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) block() ([]Stmt, error) {
-	var statements = []Stmt{}
+func (p *Parser) block() ([]*Stmt, error) {
+	var statements = []*Stmt{}
 	for !p.check(RIGHT_BRACE) && !p.isAtEnd() {
 		var value, err = p.declaration()
 		if err != nil {
 			return nil, err
 		}
-		statements = append(statements, value)
+		statements = append(statements, &value)
 	}
 	if _, err := p.consume(RIGHT_BRACE, "Expect '}' after block"); err != nil {
 		return nil, err
@@ -385,7 +397,7 @@ func (p *Parser) assignment() (Expr, error) {
 			return ExprSet{
 				Object: get.Object,
 				Name:   get.Name,
-				Value:  value,
+				Value:  &value,
 			}, nil
 		}
 		fmt.Println(p.error(equals, "Invalid assignment target."))
@@ -406,8 +418,8 @@ func (p *Parser) or() (Expr, error) {
 		}
 		expr = ExprLogical{
 			Operator: operator,
-			Right:    right,
-			Left:     expr,
+			Right:    &right,
+			Left:     &expr,
 		}
 	}
 	return expr, nil
@@ -426,8 +438,8 @@ func (p *Parser) and() (Expr, error) {
 		}
 		expr = ExprLogical{
 			Operator: operator,
-			Right:    right,
-			Left:     expr,
+			Right:    &right,
+			Left:     &expr,
 		}
 	}
 	return expr, nil
@@ -499,7 +511,7 @@ func (p *Parser) unary() (Expr, error) {
 	if p.match(BANG, MINUS) {
 		var operator Token = p.previous()
 		var right, _ = p.unary()
-		return ExprUnary{Operator: operator, Right: right}, nil
+		return ExprUnary{Operator: operator, Right: &right}, nil
 	}
 	var expr, err = p.call()
 	if err != nil {
@@ -525,7 +537,7 @@ func (p *Parser) call() (Expr, error) {
 				return nil, err
 			}
 			expr = ExprGet{
-				Object: expr,
+				Object: &expr,
 				Name:   name,
 			}
 		} else {
@@ -598,7 +610,7 @@ func (p *Parser) primary() (Expr, error) {
 		if _, err := p.consume(RIGHT_PAREN, "Expect ')' after expression."); err != nil {
 			return nil, err
 		}
-		return ExprGrouping{Expression: expr}, nil
+		return ExprGrouping{Expression: &expr}, nil
 	}
 	//Golang throws without a return
 	panic(p.error(p.peek(), "Expect expression."))

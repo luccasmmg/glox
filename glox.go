@@ -93,17 +93,17 @@ func (g Glox) run(source string, env ...*Environment) {
 		//  environment = NewEnvironment(nil)
 		//}
 		interpreter := NewInterpreter()
-		if len(statements) == 1 {
-			var stmt = statements[0]
-			if stmt, ok := stmt.(StmtExpression); ok {
-				value, err := interpreter.evaluate(stmt.Expression)
-				if err != nil {
-					fmt.Println(err)
-				}
-				fmt.Printf("%v\n", value)
-				return
-			}
-		}
+		//if len(statements) == 1 {
+		//	var stmt = statements[0]
+		//	if stmt, ok := stmt.(StmtExpression); ok {
+		//		value, err := interpreter.evaluate(*stmt.Expression)
+		//		if err != nil {
+		//			fmt.Println(err)
+		//		}
+		//		fmt.Printf("%v\n", value)
+		//		return
+		//	}
+		//}
 		resolver := NewResolver(interpreter)
 		errors := resolver.resolveStatements(statements)
 		if errors != nil {
