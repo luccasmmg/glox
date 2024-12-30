@@ -379,7 +379,7 @@ func (p *Parser) assignment() (Expr, error) {
 		var value, _ = p.assignment()
 		if variable, ok := expr.(ExprVariable); ok {
 			var name = variable.Name
-			return ExprAssign{Name: name, Value: value}, nil
+			return ExprAssign{Name: name, Value: &value}, nil
 			//TODO Reread this part of the book
 		} else if get, ok := expr.(ExprGet); ok {
 			return ExprSet{
@@ -536,14 +536,14 @@ func (p *Parser) call() (Expr, error) {
 }
 
 func (p *Parser) finishCall(callee Expr) (Expr, error) {
-	var arguments []Expr
+	var arguments []*Expr
 	if !p.check(RIGHT_PAREN) {
 		for {
 			arg, err := p.expression()
 			if err != nil {
 				return nil, err
 			}
-			arguments = append(arguments, arg)
+			arguments = append(arguments, &arg)
 			if len(arguments) >= 255 {
 				fmt.Println("Cant have more than 255 arguments")
 			}
@@ -557,7 +557,7 @@ func (p *Parser) finishCall(callee Expr) (Expr, error) {
 		return nil, err
 	}
 
-	return ExprCall{Callee: callee, Paren: paren, Arguments: arguments}, nil
+	return ExprCall{Callee: &callee, Paren: paren, Arguments: arguments}, nil
 }
 
 func (p *Parser) primary() (Expr, error) {

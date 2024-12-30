@@ -90,6 +90,7 @@ func (i *Interpreter) visitUnaryExpr(expr ExprUnary) (interface{}, error) {
 }
 
 func (i *Interpreter) visitVariableExpr(expr ExprVariable) (interface{}, error) {
+  fmt.Printf("Interpreter: Memory address: %p\n", expr)
 	return i.lookupVariable(expr.Name, expr)
 }
 
@@ -235,7 +236,7 @@ func (i *Interpreter) visitBinaryExpr(expr ExprBinary) (interface{}, error) {
 }
 
 func (i *Interpreter) visitCallExpr(expr ExprCall) (interface{}, error) {
-	callee, err := i.evaluate(expr.Callee)
+	callee, err := i.evaluate(*expr.Callee)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +249,7 @@ func (i *Interpreter) visitCallExpr(expr ExprCall) (interface{}, error) {
 	}
 	var arguments []interface{}
 	for _, argument := range expr.Arguments {
-		_arg, err := i.evaluate(argument)
+		_arg, err := i.evaluate(*argument)
 		if err != nil {
 			return nil, err
 		}
@@ -390,7 +391,7 @@ func (i *Interpreter) visitStmtVarDeclaration(stmt StmtVarDeclaration) error {
 }
 
 func (i *Interpreter) visitAssignExpr(expr ExprAssign) (interface{}, error) {
-	var value, error = i.evaluate(expr.Value)
+	var value, error = i.evaluate(*expr.Value)
 	if error != nil {
 		return nil, error
 	}

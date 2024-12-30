@@ -123,6 +123,7 @@ func (r *Resolver) visitVariableExpr(expr ExprVariable) (interface{}, error) {
 			"Can't read local variable in its own initializer.",
 		}
 	}
+  fmt.Printf("Resolver: Memory address: %p\n", expr)
 	r.resolveLocal(expr, expr.Name)
 	return nil, nil
 }
@@ -156,7 +157,7 @@ func (r *Resolver) visitSuperExpr(expr ExprSuper) (interface{}, error) {
 }
 
 func (r *Resolver) visitAssignExpr(expr ExprAssign) (interface{}, error) {
-	_, err := r.resolveExpr(expr.Value)
+	_, err := r.resolveExpr(*expr.Value)
 	if err != nil {
 		return err, nil
 	}
@@ -273,12 +274,12 @@ func (r *Resolver) visitUnaryExpr(expr ExprUnary) (interface{}, error) {
 }
 
 func (r *Resolver) visitCallExpr(expr ExprCall) (interface{}, error) {
-	_, err := r.resolveExpr(expr.Callee)
+	_, err := r.resolveExpr(*expr.Callee)
 	if err != nil {
 		return err, nil
 	}
 	for _, arg := range expr.Arguments {
-		_, err = r.resolveExpr(arg)
+		_, err = r.resolveExpr(*arg)
 		if err != nil {
 			return err, nil
 		}

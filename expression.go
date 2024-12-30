@@ -20,9 +20,9 @@ type ExprVisitor interface {
 }
 
 type ExprCall struct {
-	Callee    Expr
+	Callee    *Expr
 	Paren     Token
-	Arguments []Expr
+	Arguments []*Expr
 }
 
 type ExprBinary struct {
@@ -43,7 +43,7 @@ type ExprGrouping struct {
 
 type ExprAssign struct {
 	Name  Token
-	Value Expr
+	Value *Expr
 }
 
 type ExprLiteral struct {
