@@ -1,11 +1,14 @@
-class Emerson {
-  init() {
-    this.shape = "FRANGO";
-  }
-  getShape() {
-    return this.shape;
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
   }
 }
 
-var emerson = Emerson();
-print emerson.getShape();
+class BostonCream < Doughnut {
+  cook() {
+    super.cook();
+    print "Pipe full of custard and coat with chocolate.";
+  }
+}
+
+BostonCream().cook();

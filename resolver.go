@@ -8,7 +8,7 @@ type Resolver struct {
 	interpreter     *Interpreter
 	scopes          Stack[map[string]bool]
 	currentFunction FunctionType
-	currentClass ClassType
+	currentClass    ClassType
 }
 
 type ResolverError struct {
@@ -19,10 +19,10 @@ type ResolverError struct {
 type FunctionType string
 
 const (
-	NONE_FUNCTION     FunctionType = "NONE"
-	FUNCTION FunctionType = "FUNCTION"
-	METHOD   FunctionType = "METHOD"
-  INITIALIZER FunctionType = "INITIALIZER"
+	NONE_FUNCTION FunctionType = "NONE"
+	FUNCTION      FunctionType = "FUNCTION"
+	METHOD        FunctionType = "METHOD"
+	INITIALIZER   FunctionType = "INITIALIZER"
 )
 
 type ClassType string
@@ -30,6 +30,7 @@ type ClassType string
 const (
 	NONE_CLASS     ClassType = "NONE"
 	CLASS_RESOLVER ClassType = "CLASS"
+  SUBCLASS       ClassType = "SUBCLASS"
 )
 
 func (e *ResolverError) Error() string {
@@ -41,7 +42,7 @@ func NewResolver(interpreter *Interpreter) Resolver {
 		interpreter:     interpreter,
 		scopes:          Stack[map[string]bool]{},
 		currentFunction: NONE_FUNCTION,
-		currentClass: NONE_CLASS,
+		currentClass:    NONE_CLASS,
 	}
 }
 
@@ -60,6 +61,24 @@ func (r *Resolver) visitStmtClass(stmt StmtClass) error {
 	r.currentClass = "CLASS"
 	r.declare(stmt.Name)
 	r.define(stmt.Name)
+	if stmt.Superclass != nil && stmt.Name.Lexeme == stmt.Superclass.Name.Lexeme {
+		return &ResolverError{
+			token:   stmt.Superclass.Name,
+			message: "A class cant inherint from itself",
+		}
+	}
+	if stmt.Superclass != nil {
+    r.currentClass = "SUBCLASS"
+		r.resolveExpr(stmt.Superclass)
+	}
+	if stmt.Superclass != nil {
+		r.beginScope()
+		value, err := r.scopes.Peek()
+		if err != nil {
+			return err
+		}
+		value["super"] = true
+	}
 	r.beginScope()
 	value, err := r.scopes.Peek()
 	if err != nil {
@@ -68,13 +87,16 @@ func (r *Resolver) visitStmtClass(stmt StmtClass) error {
 	value["this"] = true
 	for _, method := range stmt.Methods {
 		var declaration FunctionType = METHOD
-    if (method.(StmtFunction)).Name.Lexeme == "init" {
-      declaration = INITIALIZER
-    }
+		if (method.(StmtFunction)).Name.Lexeme == "init" {
+			declaration = INITIALIZER
+		}
 		r.resolveFunction(method.(StmtFunction), declaration)
 	}
 	r.endScope()
-  r.currentClass = enclosingClass
+  if stmt.Superclass != nil {
+    r.endScope()
+  }
+	r.currentClass = enclosingClass
 	return nil
 }
 
@@ -106,11 +128,28 @@ func (r *Resolver) visitVariableExpr(expr ExprVariable) (interface{}, error) {
 }
 
 func (r *Resolver) visitThisExpr(expr ExprThis) (interface{}, error) {
-  if r.currentClass == NONE_CLASS {
-    return nil, &ResolverError{
-      expr.Keyword,
-      "Can't use 'this' outside of a class.",
-    }
+	if r.currentClass == NONE_CLASS {
+		return nil, &ResolverError{
+			expr.Keyword,
+			"Can't use 'this' outside of a class.",
+		}
+	}
+	r.resolveLocal(expr, expr.Keyword)
+	return nil, nil
+}
+
+func (r *Resolver) visitSuperExpr(expr ExprSuper) (interface{}, error) {
+  if r.currentClass == "NONE_CLASS" {
+		return nil, &ResolverError{
+			expr.Keyword,
+			"Can't use 'super' outside of a class.",
+		}
+  } else if r.currentClass != "SUBCLASS" {
+		return nil, &ResolverError{
+			expr.Keyword,
+			"Can't use 'super' in a class with no subclass.",
+		}
+
   }
 	r.resolveLocal(expr, expr.Keyword)
 	return nil, nil
@@ -195,12 +234,12 @@ func (r *Resolver) visitStmtReturn(stmt StmtReturn) error {
 		}
 	}
 	if stmt.Value != nil {
-    if r.currentFunction == INITIALIZER {
-      return &ResolverError{
-        stmt.Keyword,
-        "Can't return a value from an initializer.",
-      }
-    }
+		if r.currentFunction == INITIALIZER {
+			return &ResolverError{
+				stmt.Keyword,
+				"Can't return a value from an initializer.",
+			}
+		}
 		var _, err = r.resolveExpr(stmt.Value)
 		if err != nil {
 			return err

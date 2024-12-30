@@ -16,6 +16,7 @@ type ExprVisitor interface {
   visitGetExpr(expr ExprGet) (interface{}, error)
   visitSetExpr(expr ExprSet) (interface{}, error)
   visitThisExpr(expr ExprThis) (interface{}, error)
+  visitSuperExpr(expr ExprSuper) (interface{}, error)
 }
 
 type ExprCall struct {
@@ -73,6 +74,11 @@ type ExprThis struct {
   Keyword Token
 }
 
+type ExprSuper struct {
+  Keyword Token
+  Method Token
+}
+
 func (e ExprBinary) accept(v ExprVisitor) (interface{}, error) {
   value, err := v.visitBinaryExpr(e)
   return value, err
@@ -119,4 +125,8 @@ func (e ExprSet) accept(v ExprVisitor) (interface{}, error) {
 
 func (e ExprThis) accept(v ExprVisitor) (interface{}, error) {
   return v.visitThisExpr(e)
+}
+
+func (e ExprSuper) accept(v ExprVisitor) (interface{}, error) {
+  return v.visitSuperExpr(e)
 }

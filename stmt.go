@@ -58,7 +58,7 @@ type StmtFunction struct {
 type StmtClass struct {
   Name Token
   Methods []Stmt
-  //Superclass ExprVariable
+  Superclass *ExprVariable
 }
 
 func (stmt StmtVarDeclaration) accept(visitor StmtVisitor) error {

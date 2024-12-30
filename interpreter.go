@@ -307,6 +307,14 @@ func (i *Interpreter) visitSetExpr(expr ExprSet) (interface{}, error) {
 	return value, nil
 }
 
+func (i *Interpreter) visitSuperExpr(expr ExprSuper) (interface{}, error) {
+  distance := i.locals[expr]
+  superclass := i.environment.getAt(distance, "super").(GloxClass)
+  object := i.environment.getAt(distance - 1, "this").(*GloxInstance)
+  method := superclass.FindMethod(expr.Method.Lexeme)
+  return method.Bind(object), nil
+}
+
 func (i *Interpreter) visitStmtExpression(stmt StmtExpression) error {
 	var _, err = i.evaluate(stmt.Expression)
 	if err != nil {
@@ -377,7 +385,7 @@ func (i *Interpreter) visitStmtVarDeclaration(stmt StmtVarDeclaration) error {
 		}
 		value = val
 	}
-  i.environment.define(stmt.Name.Lexeme, value)
+	i.environment.define(stmt.Name.Lexeme, value)
 	return nil
 }
 
@@ -414,7 +422,21 @@ func (i *Interpreter) visitStmtBlock(stmt StmtBlock) error {
 }
 
 func (i *Interpreter) visitStmtClass(stmt StmtClass) error {
+	var superclass interface{}
+	if stmt.Superclass != nil {
+		evaluatedSuperclass, err := i.evaluate(stmt.Superclass)
+		if err != nil {
+			return err
+		}
+		superclass = evaluatedSuperclass
+	}
+
 	i.environment.define(stmt.Name.Lexeme, nil)
+  if stmt.Superclass != nil {
+    env := NewEnvironment(i.environment)
+    i.environment = &env
+    i.environment.define("super", superclass)
+  }
 	methods := make(map[string]GloxFunction)
 	for _, method := range stmt.Methods {
 		function := GloxFunction{
@@ -425,10 +447,26 @@ func (i *Interpreter) visitStmtClass(stmt StmtClass) error {
 		_method := method.(StmtFunction)
 		methods[_method.Name.Lexeme] = function
 	}
-	klass := NewGloxClass(stmt.Name.Lexeme, methods)
-  if err := i.environment.assign(stmt.Name, klass); err != nil {
-    return err
+	var klass GloxClass
+	switch sc := superclass.(type) {
+	case GloxClass:
+		klass = NewGloxClass(stmt.Name.Lexeme, methods, &sc)
+	case *GloxClass:
+		klass = NewGloxClass(stmt.Name.Lexeme, methods, sc)
+	case nil:
+		klass = NewGloxClass(stmt.Name.Lexeme, methods, nil)
+	default:
+		return &RuntimeError{
+			token:   stmt.Superclass.Name,
+			message: "Superclass must be a class",
+		}
+	}
+  if stmt.Superclass != nil {
+    i.environment = i.environment.enclosing
   }
+	if err := i.environment.assign(stmt.Name, klass); err != nil {
+		return err
+	}
 	return nil
 }
 

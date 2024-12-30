@@ -7,6 +7,7 @@ import (
 type GloxClass struct {
 	Name    string
 	Methods map[string]GloxFunction
+  Superclass *GloxClass
 }
 
 type GloxInstance struct {
@@ -14,10 +15,11 @@ type GloxInstance struct {
 	Fields map[string]interface{}
 }
 
-func NewGloxClass(name string, methods map[string]GloxFunction) GloxClass {
+func NewGloxClass(name string, methods map[string]GloxFunction, superclass *GloxClass) GloxClass {
 	return GloxClass{
 		Name:    name,
 		Methods: methods,
+    Superclass: superclass,
 	}
 }
 
@@ -36,6 +38,9 @@ func (c *GloxClass) FindMethod(name string) *GloxFunction {
 	if value, ok := c.Methods[name]; ok {
 		return &value
 	} else {
+    if c.Superclass != nil {
+      return c.Superclass.FindMethod(name)
+    }
     return nil
 	}
 }
